@@ -175,6 +175,13 @@ p,
   line-height: 1.8;
 }
 
+/* 翻译中状态 */
+.shanbay-translating {
+  color: #a0aec0;
+  font-style: italic;
+  animation: shanbay-pulse 1.5s infinite;
+}
+
 /* ========== 侧边栏翻译结果样式 ========== */
 
 .shanbay-sidebar-translation {

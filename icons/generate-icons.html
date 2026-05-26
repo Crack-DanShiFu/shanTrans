@@ -47,7 +47,7 @@
     .btn {
       display: inline-block;
       padding: 12px 24px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
       color: white;
       border: none;
       border-radius: 6px;
@@ -122,7 +122,7 @@
     });
 
     function generateIcons() {
-      var sizes = [16, 48, 128];
+      var sizes = [16, 32, 48, 128];
       var preview = document.getElementById('iconPreview');
       preview.innerHTML = '';
 
@@ -134,8 +134,8 @@
 
         // 绘制背景圆形
         var gradient = ctx.createLinearGradient(0, 0, size, size);
-        gradient.addColorStop(0, '#667eea');
-        gradient.addColorStop(1, '#764ba2');
+        gradient.addColorStop(0, '#48bb78');
+        gradient.addColorStop(1, '#38a169');
 
         ctx.beginPath();
         ctx.arc(size/2, size/2, size/2 - 2, 0, Math.PI * 2);

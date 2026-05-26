@@ -175,59 +175,66 @@
   // 保存API配置
   function saveConfig() {
     const engine = document.querySelector('input[name="engine"]:checked').value;
+    const configPayload = buildConfigPayload(engine);
 
-    if (engine === 'deepseek') {
-      const deepseekApiKey = elements.deepseekApiKey.value.trim();
-      const deepseekApiUrl = elements.deepseekApiUrl.value.trim() || 'https://api.deepseek.com/chat/completions';
-      const deepseekModel = elements.deepseekModel.value.trim() || 'deepseek-chat';
+    if (!configPayload) return;
 
-      if (!deepseekApiKey) {
-        showStatus('请填写DeepSeek API Key', 'error');
-        return;
+    const engineLabel = engine === 'deepseek' ? 'DeepSeek' : '百度翻译';
+    chrome.runtime.sendMessage(configPayload, (response) => {
+      if (response && response.success) {
+        showStatus(`${engineLabel}配置保存成功！`, 'success');
+      } else {
+        showStatus('配置保存失败，请重试', 'error');
       }
-
-      chrome.runtime.sendMessage({
-        action: 'setConfig',
-        engine: 'deepseek',
-        deepseekApiUrl: deepseekApiUrl,
-        deepseekApiKey: deepseekApiKey,
-        deepseekModel: deepseekModel
-      }, (response) => {
-        if (response && response.success) {
-          showStatus('DeepSeek配置保存成功！', 'success');
-        } else {
-          showStatus('配置保存失败，请重试', 'error');
-        }
-      });
-
-    } else {
-      const baiduApiKey = elements.baiduApiKey.value.trim();
-      const baiduSecretKey = elements.baiduSecretKey.value.trim();
-
-      if (!baiduApiKey || !baiduSecretKey) {
-        showStatus('请填写API Key和Secret Key', 'error');
-        return;
-      }
-
-      chrome.runtime.sendMessage({
-        action: 'setConfig',
-        engine: 'baidu',
-        baiduApiKey: baiduApiKey,
-        baiduSecretKey: baiduSecretKey
-      }, (response) => {
-        if (response && response.success) {
-          showStatus('百度翻译配置保存成功！', 'success');
-        } else {
-          showStatus('配置保存失败，请重试', 'error');
-        }
-      });
-    }
+    });
   }
 
   // 测试配置
   async function testConfig() {
     const engine = document.querySelector('input[name="engine"]:checked').value;
+    const configPayload = buildConfigPayload(engine);
 
+    if (!configPayload) return;
+
+    elements.testConfig.textContent = '测试中...';
+    elements.testConfig.disabled = true;
+    hideStatus();
+
+    try {
+      await new Promise((resolve) => {
+        chrome.runtime.sendMessage(configPayload, resolve);
+      });
+
+      const response = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          action: 'translate',
+          text: 'Hello, world!',
+          from: 'en',
+          to: 'zh'
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            reject(new Error(chrome.runtime.lastError.message));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+
+      if (response.success) {
+        showStatus('连接成功！翻译测试: Hello, world! → ' + response.translation, 'success');
+      } else {
+        showStatus('连接失败: ' + (response.error || '未知错误'), 'error');
+      }
+    } catch (error) {
+      showStatus('连接失败: ' + error.message, 'error');
+    } finally {
+      elements.testConfig.textContent = '测试连接';
+      elements.testConfig.disabled = false;
+    }
+  }
+
+  // 构建配置消息（返回null表示校验失败）
+  function buildConfigPayload(engine) {
     if (engine === 'deepseek') {
       const deepseekApiKey = elements.deepseekApiKey.value.trim();
       const deepseekApiUrl = elements.deepseekApiUrl.value.trim() || 'https://api.deepseek.com/chat/completions';
@@ -235,105 +242,32 @@
 
       if (!deepseekApiKey) {
         showStatus('请先填写DeepSeek API Key', 'error');
-        return;
+        return null;
       }
 
-      elements.testConfig.textContent = '测试中...';
-      elements.testConfig.disabled = true;
-      hideStatus();
-
-      try {
-        // 先保存
-        await new Promise((resolve) => {
-          chrome.runtime.sendMessage({
-            action: 'setConfig',
-            engine: 'deepseek',
-            deepseekApiUrl: deepseekApiUrl,
-            deepseekApiKey: deepseekApiKey,
-            deepseekModel: deepseekModel
-          }, resolve);
-        });
-
-        // 测试翻译
-        const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            action: 'translate',
-            text: 'Hello, world!',
-            from: 'en',
-            to: 'zh'
-          }, (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve(response);
-            }
-          });
-        });
-
-        if (response.success) {
-          showStatus('连接成功！翻译测试: Hello, world! → ' + response.translation, 'success');
-        } else {
-          showStatus('连接失败: ' + (response.error || '未知错误'), 'error');
-        }
-
-      } catch (error) {
-        showStatus('连接失败: ' + error.message, 'error');
-      } finally {
-        elements.testConfig.textContent = '测试连接';
-        elements.testConfig.disabled = false;
-      }
-
-    } else {
-      const baiduApiKey = elements.baiduApiKey.value.trim();
-      const baiduSecretKey = elements.baiduSecretKey.value.trim();
-
-      if (!baiduApiKey || !baiduSecretKey) {
-        showStatus('请先填写API Key和Secret Key', 'error');
-        return;
-      }
-
-      elements.testConfig.textContent = '测试中...';
-      elements.testConfig.disabled = true;
-      hideStatus();
-
-      try {
-        await new Promise((resolve) => {
-          chrome.runtime.sendMessage({
-            action: 'setConfig',
-            engine: 'baidu',
-            baiduApiKey: baiduApiKey,
-            baiduSecretKey: baiduSecretKey
-          }, resolve);
-        });
-
-        const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            action: 'translate',
-            text: 'Hello, world!',
-            from: 'en',
-            to: 'zh'
-          }, (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-            } else {
-              resolve(response);
-            }
-          });
-        });
-
-        if (response.success) {
-          showStatus('连接成功！翻译测试: Hello, world! → ' + response.translation, 'success');
-        } else {
-          showStatus('连接失败: ' + (response.error || '未知错误'), 'error');
-        }
-
-      } catch (error) {
-        showStatus('连接失败: ' + error.message, 'error');
-      } finally {
-        elements.testConfig.textContent = '测试连接';
-        elements.testConfig.disabled = false;
-      }
+      return {
+        action: 'setConfig',
+        engine: 'deepseek',
+        deepseekApiUrl,
+        deepseekApiKey,
+        deepseekModel
+      };
     }
+
+    const baiduApiKey = elements.baiduApiKey.value.trim();
+    const baiduSecretKey = elements.baiduSecretKey.value.trim();
+
+    if (!baiduApiKey || !baiduSecretKey) {
+      showStatus('请先填写API Key和Secret Key', 'error');
+      return null;
+    }
+
+    return {
+      action: 'setConfig',
+      engine: 'baidu',
+      baiduApiKey,
+      baiduSecretKey
+    };
   }
 
   // 保存显示配置

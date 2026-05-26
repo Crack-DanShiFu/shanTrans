@@ -4,10 +4,9 @@
 
   // 配置
   const CONFIG = {
-    // 扇贝阅读网站段落选择器
+    // 扇贝阅读网站段落选择器（按优先级排序）
     paragraphSelectors: [
-      '.para',  // 扇贝阅读实际使用的段落类名
-      'div.para',
+      '.para',
       '.article-content p',
       '.news-content p',
       '.reading-content p',
@@ -15,13 +14,12 @@
       'article p',
       'p'
     ],
-    // 翻译按钮类名
     translateButtonClass: 'shanbay-translate-btn',
-    // 翻译结果容器类名
-    translationResultClass: 'shanbay-translation-result',
-    // 加载状态类名
     loadingClass: 'shanbay-loading'
   };
+
+  // 缓存找到的有效选择器索引
+  let cachedSelectorIndex = -1;
 
   // 翻译缓存
   const translationCache = new Map();
@@ -159,18 +157,19 @@
     });
   }
 
-  // 设置MutationObserver监听DOM变化
+  // 设置MutationObserver监听DOM变化（带防抖）
   function setupMutationObserver() {
+    let debounceTimer = null;
+
     const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
-        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          // 延迟处理，确保DOM完全更新
-          setTimeout(() => {
-            setupTranslationButtons();
-            overrideOfficialTranslateButtons();
-          }, 500);
-        }
-      });
+      const hasNewNodes = mutations.some(m => m.type === 'childList' && m.addedNodes.length > 0);
+      if (!hasNewNodes) return;
+
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        setupTranslationButtons();
+        overrideOfficialTranslateButtons();
+      }, 300);
     });
 
     observer.observe(document.body, {
@@ -181,76 +180,30 @@
 
   // 替换官方翻译按钮功能
   function overrideOfficialTranslateButtons() {
-    // 查找所有官方翻译按钮
     const officialButtons = document.querySelectorAll('.translate-btn:not([data-shanbay-overridden])');
 
     officialButtons.forEach(button => {
-      // 标记已处理
       button.setAttribute('data-shanbay-overridden', 'true');
 
-      // 移除原有事件（通过克隆节点）
       const newButton = button.cloneNode(true);
       button.parentNode.replaceChild(newButton, button);
 
-      // 添加新的点击事件
       newButton.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        // 找到对应的段落
         const paragraph = newButton.closest('.para') || newButton.closest('p') || newButton.parentElement;
         if (!paragraph) return;
 
-        // 获取段落文本
         const text = getParagraphText(paragraph);
         if (!text) {
           showNotification('没有可翻译的文本', 'warning');
           return;
         }
 
-        // 调用翻译
-        handleOfficialTranslate(text, newButton);
+        executeTranslate(text, newButton, true);
       });
-
-      console.log('[翻译助手] 已替换官方翻译按钮');
     });
-  }
-
-  // 处理官方按钮翻译
-  async function handleOfficialTranslate(text, button) {
-    console.log('[翻译助手] 官方按钮翻译，文本:', text.substring(0, 50) + '...');
-
-    // 检查缓存
-    if (translationCache.has(text)) {
-      showTranslationResult(text, translationCache.get(text));
-      return;
-    }
-
-    // 显示加载状态
-    const originalText = button.textContent;
-    // button.textContent = '翻译中...';
-    button.disabled = true;
-    button.style.opacity = '0.6';
-
-    try {
-      // 调用翻译API
-      const translation = await translateText(text);
-
-      // 缓存翻译结果
-      translationCache.set(text, translation);
-
-      // 显示翻译结果
-      showTranslationResult(text, translation);
-
-    } catch (error) {
-      console.error('[翻译助手] 翻译失败:', error);
-      showNotification('翻译失败: ' + error.message, 'error');
-    } finally {
-      // 恢复按钮状态
-      button.textContent = originalText;
-      button.disabled = false;
-      button.style.opacity = '1';
-    }
   }
 
   // 设置翻译按钮
@@ -273,26 +226,41 @@
     });
   }
 
-  // 查找段落元素
+  // 查找段落元素（使用缓存的选择器索引）
   function findParagraphs() {
     const paragraphs = [];
 
-    // 尝试不同的选择器
-    for (const selector of CONFIG.paragraphSelectors) {
+    // 优先使用缓存的选择器索引
+    if (cachedSelectorIndex >= 0 && cachedSelectorIndex < CONFIG.paragraphSelectors.length) {
+      const selector = CONFIG.paragraphSelectors[cachedSelectorIndex];
       const elements = document.querySelectorAll(selector);
-      if (elements.length > 0) {
-        // 过滤掉空段落和很短的段落
-        const validParagraphs = Array.from(elements).filter(el => {
-          const text = el.textContent.trim();
-          return text.length > 10 && !el.querySelector(`.${CONFIG.translateButtonClass}`);
-        });
+      const validParagraphs = Array.from(elements).filter(el => {
+        const text = el.textContent.trim();
+        return text.length > 10 && !el.querySelector(`.${CONFIG.translateButtonClass}`);
+      });
+      paragraphs.push(...validParagraphs);
+    }
 
-        paragraphs.push(...validParagraphs);
-        break; // 找到合适的选择器就停止
+    // 缓存未命中时，遍历选择器
+    if (paragraphs.length === 0) {
+      for (let i = 0; i < CONFIG.paragraphSelectors.length; i++) {
+        const selector = CONFIG.paragraphSelectors[i];
+        const elements = document.querySelectorAll(selector);
+        if (elements.length > 0) {
+          const validParagraphs = Array.from(elements).filter(el => {
+            const text = el.textContent.trim();
+            return text.length > 10 && !el.querySelector(`.${CONFIG.translateButtonClass}`);
+          });
+          if (validParagraphs.length > 0) {
+            cachedSelectorIndex = i;
+            paragraphs.push(...validParagraphs);
+            break;
+          }
+        }
       }
     }
 
-    // 如果没有找到段落，尝试查找所有包含文本的p标签
+    // 兜底：查找所有p标签
     if (paragraphs.length === 0) {
       const allParagraphs = document.querySelectorAll('p');
       allParagraphs.forEach(p => {
@@ -353,44 +321,54 @@
   }
 
   // 处理翻译按钮点击
-  async function handleTranslateClick(paragraph, button) {
+  function handleTranslateClick(paragraph, button) {
     const text = getParagraphText(paragraph);
-    console.log('[翻译助手] 点击翻译按钮，文本:', text.substring(0, 50) + '...');
-
     if (!text) {
       showNotification('没有可翻译的文本', 'warning');
       return;
     }
+    executeTranslate(text, button, false);
+  }
+
+  // 执行翻译（统一处理自定义按钮和官方按钮）
+  async function executeTranslate(text, button, isOfficial) {
+    // 立即显示原文
+    showOriginalText(text);
 
     // 检查缓存
     if (translationCache.has(text)) {
-      showTranslationResult(text, translationCache.get(text));
+      showTranslationInResult(text, translationCache.get(text));
       return;
     }
 
     // 显示加载状态
-    button.classList.add(CONFIG.loadingClass);
-    button.innerHTML = '...';
-    button.disabled = true;
+    const originalText = button.textContent;
+    if (isOfficial) {
+      button.disabled = true;
+      button.style.opacity = '0.6';
+    } else {
+      button.classList.add(CONFIG.loadingClass);
+      button.innerHTML = '...';
+      button.disabled = true;
+    }
 
     try {
-      // 调用翻译API
       const translation = await translateText(text);
-
-      // 缓存翻译结果
       translationCache.set(text, translation);
-
-      // 显示翻译结果
-      showTranslationResult(text, translation);
-
+      showTranslationInResult(text, translation);
     } catch (error) {
-      console.error('[翻译助手] 翻译失败:', error);
       showNotification('翻译失败: ' + error.message, 'error');
     } finally {
       // 恢复按钮状态
-      button.classList.remove(CONFIG.loadingClass);
-      button.innerHTML = '译';
-      button.disabled = false;
+      if (isOfficial) {
+        button.textContent = originalText;
+        button.disabled = false;
+        button.style.opacity = '1';
+      } else {
+        button.classList.remove(CONFIG.loadingClass);
+        button.innerHTML = '译';
+        button.disabled = false;
+      }
     }
   }
 
@@ -420,20 +398,33 @@
 
   // 显示翻译结果
   function showTranslationResult(originalText, translation) {
+    showOriginalText(originalText);
+    showTranslationInResult(originalText, translation);
+  }
+
+  // 立即显示原文（翻译请求发出时调用）
+  function showOriginalText(originalText) {
     if (displayConfig.mode === 'sidebar') {
-      showInSidebar(originalText, translation);
+      showOriginalInSidebar(originalText);
     } else {
-      showInPanel(originalText, translation);
+      showOriginalInPanel(originalText);
     }
   }
 
-  // 在右侧面板显示翻译结果
-  function showInPanel(originalText, translation) {
-    // 获取面板内容区域
+  // 更新译文（翻译结果返回时调用）
+  function showTranslationInResult(originalText, translation) {
+    if (displayConfig.mode === 'sidebar') {
+      showTranslationInSidebar(originalText, translation);
+    } else {
+      showTranslationInPanel(originalText, translation);
+    }
+  }
+
+  // 面板：立即显示原文
+  function showOriginalInPanel(originalText) {
     const panelContent = document.getElementById('shanbay-panel-content');
     if (!panelContent) return;
 
-    // 根据配置决定是否显示原文
     let html = '';
     if (displayConfig.showOriginal) {
       html += `
@@ -446,51 +437,50 @@
     html += `
       <div class="shanbay-panel-translation">
         <div class="shanbay-panel-label">译文</div>
-        <div class="shanbay-panel-text">${translation}</div>
+        <div class="shanbay-panel-text shanbay-translating">翻译中...</div>
       </div>
     `;
 
-    // 更新面板内容
     panelContent.innerHTML = html;
-
-    // 显示面板
     translationPanel.classList.add('shanbay-panel-show');
   }
 
-  // 在页面侧边栏显示翻译结果
-  function showInSidebar(originalText, translation) {
-    // 查找侧边栏
+  // 面板：更新译文
+  function showTranslationInPanel(originalText, translation) {
+    const panelContent = document.getElementById('shanbay-panel-content');
+    if (!panelContent) return;
+
+    const translationArea = panelContent.querySelector('.shanbay-panel-translation .shanbay-panel-text');
+    if (translationArea) {
+      translationArea.textContent = translation;
+      translationArea.classList.remove('shanbay-translating');
+    }
+  }
+
+  // 侧边栏：立即显示原文
+  function showOriginalInSidebar(originalText) {
     const sidebar = document.querySelector(displayConfig.sidebarSelector);
     if (!sidebar) {
-      console.error('[翻译助手] 未找到侧边栏元素:', displayConfig.sidebarSelector);
       showNotification('未找到侧边栏元素', 'error');
       return;
     }
 
-    // 检查是否已有翻译结果容器
     let resultContainer = sidebar.querySelector('.shanbay-sidebar-translation');
     if (!resultContainer) {
-      // 创建翻译结果容器
       resultContainer = document.createElement('div');
       resultContainer.className = 'shanbay-sidebar-translation';
 
-      // 查找 notes-sidebar 元素
       const notesSidebar = sidebar.querySelector('.notes-sidebar') ||
                            sidebar.querySelector('[class*="notes-sidebar"]') ||
                            sidebar.querySelector('#notes-sidebar');
 
       if (notesSidebar) {
-        // 插入到 notes-sidebar 之后
         notesSidebar.parentNode.insertBefore(resultContainer, notesSidebar.nextSibling);
-        console.log('[翻译助手] 翻译结果已插入到 notes-sidebar 之后');
       } else {
-        // 如果没有找到 notes-sidebar，插入到侧边栏开头
         sidebar.insertBefore(resultContainer, sidebar.firstChild);
-        console.log('[翻译助手] 未找到 notes-sidebar，翻译结果插入到侧边栏开头');
       }
     }
 
-    // 根据配置决定是否显示原文
     let contentHtml = '';
     if (displayConfig.showOriginal) {
       contentHtml += `
@@ -503,20 +493,38 @@
     contentHtml += `
       <div class="shanbay-sidebar-translation-text">
         <div class="shanbay-sidebar-label">译文</div>
-        <div class="shanbay-sidebar-text">${translation}</div>
+        <div class="shanbay-sidebar-text shanbay-translating">翻译中...</div>
       </div>
     `;
 
-    // 更新内容
     resultContainer.innerHTML = `
       <div class="shanbay-sidebar-header">
         <span class="shanbay-sidebar-title">翻译结果</span>
-        <button class="shanbay-sidebar-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        <button class="shanbay-sidebar-close">×</button>
       </div>
       <div class="shanbay-sidebar-content">
         ${contentHtml}
       </div>
     `;
+
+    resultContainer.querySelector('.shanbay-sidebar-close').addEventListener('click', () => {
+      resultContainer.remove();
+    });
+  }
+
+  // 侧边栏：更新译文
+  function showTranslationInSidebar(originalText, translation) {
+    const sidebar = document.querySelector(displayConfig.sidebarSelector);
+    if (!sidebar) return;
+
+    const resultContainer = sidebar.querySelector('.shanbay-sidebar-translation');
+    if (!resultContainer) return;
+
+    const translationArea = resultContainer.querySelector('.shanbay-sidebar-translation-text .shanbay-sidebar-text');
+    if (translationArea) {
+      translationArea.textContent = translation;
+      translationArea.classList.remove('shanbay-translating');
+    }
   }
 
   // 保存原始标题
