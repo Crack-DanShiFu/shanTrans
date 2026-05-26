@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build output
+*.zip
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug files
+src/content/content-debug.js
+
+# Tools
+tools/
+
+# Docs
+*.md
+!README.md
+
+# Build scripts
+build.bat
+generate-*.bat
+start-*.bat

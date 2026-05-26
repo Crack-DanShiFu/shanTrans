@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- 背景圆形 -->
+  <circle cx="64" cy="64" r="60" fill="url(#gradient)" stroke="white" stroke-width="4"/>
+
+  <!-- 翻译图标 -->
+  <!-- 地球仪 -->
+  <circle cx="64" cy="54" r="28" fill="none" stroke="white" stroke-width="3"/>
+  <ellipse cx="64" cy="54" rx="12" ry="28" fill="none" stroke="white" stroke-width="2"/>
+  <line x1="36" y1="54" x2="92" y2="54" stroke="white" stroke-width="2"/>
+  <line x1="64" y1="26" x2="64" y2="82" stroke="white" stroke-width="2"/>
+
+  <!-- 文字"译" -->
+  <text x="64" y="98" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="white" text-anchor="middle" dominant-baseline="middle">译</text>
+
+  <!-- 装饰性语言符号 -->
+  <text x="42" y="48" font-family="Arial, sans-serif" font-size="12" fill="white" opacity="0.8">A</text>
+  <text x="80" y="48" font-family="Arial, sans-serif" font-size="12" fill="white" opacity="0.8">文</text>
+</svg>

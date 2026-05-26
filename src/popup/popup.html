@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>扇贝阅读翻译助手</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(135deg, #defee9 0%, #e0f1e7 100%);
+      color: #333;
+      overflow-x: hidden;
+    }
+
+    .container {
+      background: white;
+      margin: 16px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      overflow: hidden;
+    }
+
+    /* 隐藏滚动条但保留滚动功能 */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #d1d5db;
+      border-radius: 2px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9ca3af;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+      padding: 16px 20px;
+      text-align: center;
+      border-bottom: 1px solid #e8ecf4;
+    }
+
+    .header h1 {
+      font-size: 16px;
+      color: #4a5568;
+      font-weight: 600;
+    }
+
+    /* Tab Navigation */
+    .tabs {
+      display: flex;
+      border-bottom: 2px solid #e8ecf4;
+      background: #f8f9ff;
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 8px;
+      border: none;
+      background: none;
+      font-size: 13px;
+      font-weight: 500;
+      color: #718096;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .tab-btn:hover {
+      color: #38a169;
+      background: rgba(72, 187, 120, 0.05);
+    }
+
+    .tab-btn.active {
+      color: #38a169;
+      font-weight: 600;
+    }
+
+    .tab-btn.active::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 20%;
+      width: 60%;
+      height: 2px;
+      background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+      border-radius: 1px;
+    }
+
+    /* Tab Content */
+    .tab-content {
+      display: none;
+      padding: 20px;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #718096;
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .form-group input[type="text"],
+    .form-group input[type="password"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.2s ease;
+      background: #f8fafc;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #48bb78;
+      background: white;
+      box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.1);
+    }
+
+    .form-group input::placeholder {
+      color: #a0aec0;
+    }
+
+    .radio-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: #f7fafc;
+      border: 1.5px solid #e8ecf4;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      color: #4a5568;
+    }
+
+    .radio-label:hover {
+      border-color: #9ae6b4;
+      background: #f0fff4;
+    }
+
+    .radio-label input[type="radio"] {
+      display: none;
+    }
+
+    .radio-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e0;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .radio-label input[type="radio"]:checked ~ .radio-dot {
+      border-color: #48bb78;
+      background: #48bb78;
+      box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.15);
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      background: #f7fafc;
+      border: 1.5px solid #e8ecf4;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      color: #4a5568;
+    }
+
+    .checkbox-label:hover {
+      border-color: #9ae6b4;
+      background: #f0fff4;
+    }
+
+    .checkbox-label input[type="checkbox"] {
+      display: none;
+    }
+
+    .checkbox-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e0;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .checkbox-label input[type="checkbox"]:checked ~ .checkbox-dot {
+      border-color: #48bb78;
+      background: #48bb78;
+      box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.15);
+    }
+
+    .model-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .model-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #f7fafc;
+      border: 1.5px solid #e8ecf4;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 13px;
+      color: #4a5568;
+    }
+
+    .model-item:hover {
+      border-color: #9ae6b4;
+      background: #f0fff4;
+    }
+
+    .model-item.active {
+      border-color: #68d391;
+      background: #f0fff4;
+    }
+
+    .model-item-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e0;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .model-item.active .model-item-dot {
+      border-color: #48bb78;
+      background: #48bb78;
+      box-shadow: 0 0 0 3px rgba(72, 187, 120, 0.15);
+    }
+
+    .model-item-label {
+      font-weight: 500;
+    }
+
+    .model-item-desc {
+      font-size: 11px;
+      color: #a0aec0;
+      margin-left: auto;
+    }
+
+    .form-hint {
+      font-size: 11px;
+      color: #a0aec0;
+      margin-top: 4px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: #f0fff4;
+      color: #38a169;
+      border: 1.5px solid #9ae6b4;
+    }
+
+    .btn-primary:hover {
+      background: #c6f6d5;
+      border-color: #68d391;
+    }
+
+    .btn-primary:active {
+      background: #9ae6b4;
+    }
+
+    .btn-secondary {
+      background: #edf2f7;
+      color: #4a5568;
+      margin-top: 8px;
+    }
+
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
+
+    .tips {
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .tips:last-child {
+      margin-bottom: 0;
+    }
+
+    .tips-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #92400e;
+      margin-bottom: 8px;
+    }
+
+    .tips-content {
+      font-size: 11px;
+      color: #92400e;
+      line-height: 1.6;
+    }
+
+    .tips-content a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .tips-content a:hover {
+      text-decoration: underline;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 10px;
+      font-size: 11px;
+      color: #a0aec0;
+      border-top: 1px solid #e8ecf4;
+    }
+
+    #apiStatus {
+      min-height: 16px;
+      margin-top: 12px;
+      font-size: 12px;
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      display: none;
+    }
+
+    #apiStatus.success {
+      background: #f0fff4;
+      color: #276749;
+      border: 1px solid #c6f6d5;
+      display: block;
+    }
+
+    #apiStatus.error {
+      background: #fff5f5;
+      color: #9b2c2c;
+      border: 1px solid #fed7d7;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>扇贝阅读翻译助手</h1>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="api">API配置</button>
+      <button class="tab-btn" data-tab="display">显示设置</button>
+      <button class="tab-btn" data-tab="help">帮助</button>
+    </div>
+
+    <!-- API配置 -->
+    <div class="tab-content active" id="tab-api">
+      <div class="form-group">
+        <label>翻译引擎</label>
+        <label class="radio-label">
+          <input type="radio" name="engine" value="baidu" checked>
+          <span class="radio-dot"></span>
+          百度翻译
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="engine" value="deepseek">
+          <span class="radio-dot"></span>
+          DeepSeek
+        </label>
+      </div>
+
+      <!-- 百度配置 -->
+      <div id="baiduConfig">
+        <div class="form-group">
+          <label for="baiduApiKey">API Key</label>
+          <input type="text" id="baiduApiKey" placeholder="请输入百度AI平台API Key">
+        </div>
+        <div class="form-group">
+          <label for="baiduSecretKey">Secret Key</label>
+          <input type="password" id="baiduSecretKey" placeholder="请输入百度AI平台Secret Key">
+        </div>
+      </div>
+
+      <!-- DeepSeek配置 -->
+      <div id="deepseekConfig" style="display: none;">
+        <div class="form-group">
+          <label for="deepseekApiUrl">API地址</label>
+          <input type="text" id="deepseekApiUrl" placeholder="https://api.deepseek.com/chat/completions">
+          <div class="form-hint">兼容OpenAI格式的API地址</div>
+        </div>
+        <div class="form-group">
+          <label for="deepseekApiKey">API Key</label>
+          <input type="password" id="deepseekApiKey" placeholder="请输入DeepSeek API Key">
+        </div>
+        <div class="form-group">
+          <label>模型</label>
+          <div class="model-list" id="modelChips">
+            <div class="model-item active" data-value="deepseek-chat">
+              <div class="model-item-dot"></div>
+              <span class="model-item-label">deepseek-chat</span>
+              <span class="model-item-desc">通用对话</span>
+            </div>
+            <div class="model-item" data-value="deepseek-reasoner">
+              <div class="model-item-dot"></div>
+              <span class="model-item-label">deepseek-reasoner</span>
+              <span class="model-item-desc">深度推理</span>
+            </div>
+            <div class="model-item" data-value="custom">
+              <div class="model-item-dot"></div>
+              <span class="model-item-label">自定义</span>
+              <span class="model-item-desc">手动输入</span>
+            </div>
+          </div>
+          <input type="hidden" id="deepseekModel" value="deepseek-chat">
+          <input type="text" id="deepseekModelCustom" placeholder="请输入模型名称" style="display: none; margin-top: 8px;">
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="saveConfig">保存配置</button>
+      <button class="btn btn-secondary" id="testConfig">测试连接</button>
+      <div id="apiStatus"></div>
+    </div>
+
+    <!-- 显示设置 -->
+    <div class="tab-content" id="tab-display">
+      <div class="form-group">
+        <label>翻译结果显示位置</label>
+        <label class="radio-label">
+          <input type="radio" name="displayMode" value="sidebar" checked>
+          <span class="radio-dot"></span>
+          显示在页面侧边栏
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="displayMode" value="panel">
+          <span class="radio-dot"></span>
+          右侧抽屉弹出
+        </label>
+      </div>
+
+      <div class="form-group" id="sidebarSelectorGroup" style="display: none;">
+        <label for="sidebarSelector">侧边栏选择器</label>
+        <input type="text" id="sidebarSelector" placeholder=".sideBar" value=".sideBar">
+        <div class="form-hint">页面中侧边栏元素的CSS选择器</div>
+      </div>
+
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input type="checkbox" id="showOriginal" checked>
+          <span class="checkbox-dot"></span>
+          显示原文对照
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="hideTitle">
+          <span class="checkbox-dot"></span>
+          隐藏网页标题
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox" id="hideButton">
+          <span class="checkbox-dot"></span>
+          隐藏翻译按钮
+        </label>
+      </div>
+
+      <button class="btn btn-primary" id="saveDisplayConfig">保存设置</button>
+    </div>
+
+    <!-- 帮助 -->
+    <div class="tab-content" id="tab-help">
+      <div class="tips">
+        <div class="tips-title">使用方法</div>
+        <div class="tips-content">
+          1. 打开扇贝阅读任意文章<br>
+          2. 鼠标悬浮在段落上，点击"译"按钮<br>
+          3. 翻译结果显示在侧边栏或右侧面板<br>
+          4. 在"显示设置"中可调整显示方式
+        </div>
+      </div>
+
+      <div class="tips">
+        <div class="tips-title">百度翻译接入</div>
+        <div class="tips-content">
+          1. 访问 <a href="https://cloud.baidu.com/product/mt" target="_blank">百度翻译开放平台</a><br>
+          2. 注册并登录百度智能云账号<br>
+          3. 开通"机器翻译"服务<br>
+          4. 在"应用管理"中创建应用<br>
+          5. 将API Key和Secret Key填入配置
+        </div>
+      </div>
+
+      <div class="tips">
+        <div class="tips-title">DeepSeek接入</div>
+        <div class="tips-content">
+          1. 访问 <a href="https://platform.deepseek.com/" target="_blank">DeepSeek开放平台</a><br>
+          2. 注册并登录账号<br>
+          3. 进入"API Keys"页面创建Key<br>
+          4. 将API Key填入配置
+        </div>
+      </div>
+
+      <div class="tips">
+        <div class="tips-title">引擎区别</div>
+        <div class="tips-content">
+          <b>百度翻译</b>：专业翻译API，速度快、稳定性好<br>
+          <b>DeepSeek</b>：AI大模型，理解上下文语境更准确
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      扇贝阅读翻译助手 v1.0.0
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
