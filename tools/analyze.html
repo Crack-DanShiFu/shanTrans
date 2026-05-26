@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>页面结构分析工具</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .instructions {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+    .instructions h3 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    .instructions ol {
+      margin-bottom: 0;
+    }
+    .code {
+      background: #f8f9fa;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+      margin: 20px 0;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+      margin: 10px 5px;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    .note {
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      padding: 15px;
+      border-radius: 6px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>扇贝阅读网站结构分析工具</h1>
+
+    <div class="instructions">
+      <h3>使用方法：</h3>
+      <ol>
+        <li>访问扇贝阅读文章页面</li>
+        <li>按 F12 打开开发者工具</li>
+        <li>点击 "Console" 标签</li>
+        <li>复制下方代码并粘贴到控制台</li>
+        <li>按回车运行</li>
+        <li>将输出结果发送给我</li>
+      </ol>
+    </div>
+
+    <button class="btn" onclick="copyCode()">复制分析代码</button>
+
+    <div class="note">
+      <strong>提示：</strong>运行后会输出页面的详细结构信息，帮助我了解扇贝阅读网站的实际DOM结构。
+    </div>
+
+    <h3>分析代码：</h3>
+    <div class="code" id="code">// 扇贝阅读网站结构分析脚本
+(function() {
+  console.log('=== 扇贝阅读网站结构分析 ===');
+  console.log('');
+
+  // 1. 页面基本信息
+  console.log('1. 页面信息');
+  console.log('   URL:', window.location.href);
+  console.log('   标题:', document.title);
+  console.log('');
+
+  // 2. 查找主要内容容器
+  console.log('2. 查找主要内容容器');
+  const mainSelectors = [
+    'article',
+    '.article',
+    '.content',
+    '.main-content',
+    '.article-content',
+    '.news-content',
+    '.reading-content',
+    '.text-content',
+    '.paragraph',
+    '[class*="article"]',
+    '[class*="content"]',
+    '[class*="text"]',
+    '[class*="paragraph"]',
+    '[class*="body"]',
+    '[class*="main"]'
+  ];
+
+  mainSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    if (elements.length > 0) {
+      console.log('   ' + selector + ': ' + elements.length + ' 个元素');
+      if (elements.length <= 3) {
+        elements.forEach((el, i) => {
+          console.log('     - ' + el.tagName + '.' + el.className + ' (' + el.textContent.trim().substring(0, 30) + '...)');
+        });
+      }
+    }
+  });
+  console.log('');
+
+  // 3. 查找所有包含文本的元素
+  console.log('3. 查找包含文本的元素');
+  const allElements = document.querySelectorAll('*');
+  const textElements = [];
+
+  allElements.forEach(el => {
+    const text = el.textContent.trim();
+    const isLeaf = el.children.length === 0 ||
+      (el.children.length === 1 && el.children[0].nodeType === 3);
+
+    if (text.length > 20 && text.length < 1000 && isLeaf) {
+      textElements.push({
+        element: el,
+        tag: el.tagName,
+        class: el.className,
+        id: el.id,
+        text: text.substring(0, 50) + '...'
+      });
+    }
+  });
+
+  console.log('   找到 ' + textElements.length + ' 个包含文本的元素');
+  if (textElements.length > 0) {
+    console.log('   前10个:');
+    textElements.slice(0, 10).forEach((item, i) => {
+      console.log('   ' + (i + 1) + '. ' + item.tag + '.' + item.class);
+      console.log('      文本: ' + item.text);
+    });
+  }
+  console.log('');
+
+  // 4. 查找p标签
+  console.log('4. 查找p标签');
+  const pTags = document.querySelectorAll('p');
+  console.log('   找到 ' + pTags.length + ' 个p标签');
+  if (pTags.length > 0) {
+    pTags.forEach((p, i) => {
+      const text = p.textContent.trim();
+      if (text.length > 10) {
+        console.log('   ' + (i + 1) + '. ' + (p.className || '(无类名)'));
+        console.log('      文本: ' + text.substring(0, 50) + '...');
+      }
+    });
+  }
+  console.log('');
+
+  // 5. 查找div标签
+  console.log('5. 查找div标签');
+  const divTags = document.querySelectorAll('div');
+  let divCount = 0;
+  divTags.forEach(div => {
+    const text = div.textContent.trim();
+    if (text.length > 20 && text.length < 500 && div.children.length <= 2) {
+      if (divCount < 5) {
+        console.log('   ' + (divCount + 1) + '. ' + (div.className || '(无类名)'));
+        console.log('      文本: ' + text.substring(0, 50) + '...');
+      }
+      divCount++;
+    }
+  });
+  console.log('   共找到 ' + divCount + ' 个可能的文本div');
+  console.log('');
+
+  // 6. 查找span标签
+  console.log('6. 查找span标签');
+  const spanTags = document.querySelectorAll('span');
+  let spanCount = 0;
+  spanTags.forEach(span => {
+    const text = span.textContent.trim();
+    if (text.length > 20) {
+      if (spanCount < 5) {
+        console.log('   ' + (spanCount + 1) + '. ' + (span.className || '(无类名)'));
+        console.log('      文本: ' + text.substring(0, 50) + '...');
+      }
+      spanCount++;
+    }
+  });
+  console.log('   共找到 ' + spanCount + ' 个可能的文本span');
+  console.log('');
+
+  // 7. 输出页面结构概览
+  console.log('7. 页面结构概览');
+  const body = document.body;
+  console.log('   Body子元素:');
+  Array.from(body.children).forEach((child, i) => {
+    if (i < 10) {
+      console.log('   ' + (i + 1) + '. ' + child.tagName + '.' + child.className);
+    }
+  });
+  console.log('');
+
+  // 8. 查找iframe
+  console.log('8. 查找iframe');
+  const iframes = document.querySelectorAll('iframe');
+  console.log('   找到 ' + iframes.length + ' 个iframe');
+  if (iframes.length > 0) {
+    iframes.forEach((iframe, i) => {
+      console.log('   ' + (i + 1) + '. src: ' + (iframe.src || '(无src)'));
+    });
+  }
+  console.log('');
+
+  console.log('=== 分析完成 ===');
+  console.log('');
+  console.log('请将以上信息发送给我，我将帮助您调整翻译助手。');
+})();</div>
+  </div>
+
+  <script>
+    function copyCode() {
+      const code = document.getElementById('code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        alert('代码已复制到剪贴板！');
+      }).catch(err => {
+        // 备用复制方法
+        const textarea = document.createElement('textarea');
+        textarea.value = code;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        alert('代码已复制到剪贴板！');
+      });
+    }
+  </script>
+</body>
+</html>

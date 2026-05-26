@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>翻译助手测试</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 40px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+    .test-paragraph {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      position: relative;
+    }
+    .btn {
+      padding: 10px 20px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 10px 5px;
+    }
+    .btn:hover {
+      opacity: 0.9;
+    }
+    #status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 6px;
+      display: none;
+    }
+    .success {
+      background: #f0fff4;
+      color: #276749;
+      border: 1px solid #c6f6d5;
+      display: block !important;
+    }
+    .error {
+      background: #fff5f5;
+      color: #9b2c2c;
+      border: 1px solid #fed7d7;
+      display: block !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>翻译助手功能测试</h1>
+
+    <p>这是一个测试页面，用于验证翻译助手功能是否正常工作。</p>
+
+    <button class="btn" onclick="testTranslation()">测试翻译功能</button>
+    <button class="btn" onclick="testButtons()">测试按钮显示</button>
+
+    <div id="status"></div>
+
+    <h2>测试段落：</h2>
+
+    <div class="test-paragraph" id="test1">
+      <p>This is a test paragraph. The quick brown fox jumps over the lazy dog. This sentence contains every letter of the English alphabet.</p>
+    </div>
+
+    <div class="test-paragraph" id="test2">
+      <p>Learning a new language can be challenging but rewarding. It opens up new opportunities for communication and understanding different cultures.</p>
+    </div>
+
+    <div class="test-paragraph" id="test3">
+      <p>Technology has transformed the way we live and work. From smartphones to artificial intelligence, innovation continues to shape our future.</p>
+    </div>
+  </div>
+
+  <script>
+    // 测试翻译功能
+    async function testTranslation() {
+      const status = document.getElementById('status');
+      status.textContent = '正在测试翻译...';
+      status.className = 'info';
+      status.style.display = 'block';
+
+      try {
+        const testText = 'Hello, world!';
+        const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(testText) + '&langpair=en|zh-CN';
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.responseStatus === 200) {
+          status.textContent = '翻译测试成功！结果：' + data.responseData.translatedText;
+          status.className = 'success';
+        } else {
+          status.textContent = '翻译测试失败：' + (data.responseDetails || '未知错误');
+          status.className = 'error';
+        }
+      } catch (error) {
+        status.textContent = '翻译测试失败：' + error.message;
+        status.className = 'error';
+      }
+    }
+
+    // 测试按钮显示
+    function testButtons() {
+      const status = document.getElementById('status');
+      const paragraphs = document.querySelectorAll('.test-paragraph p');
+
+      if (paragraphs.length === 0) {
+        status.textContent = '未找到测试段落';
+        status.className = 'error';
+        status.style.display = 'block';
+        return;
+      }
+
+      // 为每个段落添加翻译按钮
+      paragraphs.forEach((p, index) => {
+        const parent = p.parentElement;
+
+        // 检查是否已有按钮
+        if (parent.querySelector('.shanbay-translate-btn')) {
+          return;
+        }
+
+        const button = document.createElement('button');
+        button.className = 'shanbay-translate-btn';
+        button.innerHTML = '译';
+        button.title = '翻译此段落';
+        button.style.cssText = 'position:absolute;right:10px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:none;border-radius:50%;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;font-size:12px;font-weight:bold;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:all 0.3s ease;box-shadow:0 2px 8px rgba(102,126,234,0.4);z-index:1000;padding:0;line-height:1;';
+
+        button.addEventListener('click', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const text = p.textContent.trim();
+          button.innerHTML = '...';
+          button.disabled = true;
+
+          try {
+            const url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|zh-CN';
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.responseStatus === 200) {
+              const translation = data.responseData.translatedText;
+              alert('翻译结果：' + translation);
+            } else {
+              alert('翻译失败');
+            }
+          } catch (error) {
+            alert('翻译失败：' + error.message);
+          } finally {
+            button.innerHTML = '译';
+            button.disabled = false;
+          }
+        });
+
+        // 鼠标悬浮显示按钮
+        parent.addEventListener('mouseenter', () => {
+          button.style.opacity = '1';
+        });
+        parent.addEventListener('mouseleave', () => {
+          button.style.opacity = '0';
+        });
+
+        parent.appendChild(button);
+      });
+
+      status.textContent = '已为 ' + paragraphs.length + ' 个段落添加翻译按钮。请将鼠标悬浮在段落上查看按钮。';
+      status.className = 'success';
+      status.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

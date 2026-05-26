@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>生成图标</title>
+</head>
+<body>
+  <h1>点击按钮生成图标</h1>
+  <button onclick="generate()">生成并下载图标</button>
+  <script>
+    function generate() {
+      var sizes = [16, 48, 128];
+      sizes.forEach(function(size) {
+        var canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        var ctx = canvas.getContext('2d');
+
+        var g = ctx.createLinearGradient(0, 0, size, size);
+        g.addColorStop(0, '#667eea');
+        g.addColorStop(1, '#764ba2');
+
+        ctx.beginPath();
+        ctx.arc(size/2, size/2, size/2-2, 0, Math.PI*2);
+        ctx.fillStyle = g;
+        ctx.fill();
+
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = size*0.03;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(size/2, size*0.42, size*0.22, 0, Math.PI*2);
+        ctx.stroke();
+
+        ctx.lineWidth = size*0.015;
+        ctx.beginPath();
+        ctx.ellipse(size/2, size*0.42, size*0.09, size*0.22, 0, 0, Math.PI*2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(size*0.28, size*0.42);
+        ctx.lineTo(size*0.72, size*0.42);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(size/2, size*0.2);
+        ctx.lineTo(size/2, size*0.64);
+        ctx.stroke();
+
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold '+(size*0.19)+'px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('译', size/2, size*0.77);
+
+        var a = document.createElement('a');
+        a.download = 'icon' + size + '.png';
+        a.href = canvas.toDataURL();
+        a.click();
+      });
+      alert('图标已下载！请将icon16.png、icon48.png、icon128.png放到icons目录');
+    }
+  </script>
+</body>
+</html>
