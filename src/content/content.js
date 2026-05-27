@@ -62,9 +62,22 @@
     hideButton: false  // 是否隐藏翻译按钮
   };
 
+  // 清理上一次留下的翻译结果
+  function cleanupPreviousTranslations() {
+    stopTTS();
+    document.querySelectorAll('.shanbay-sidebar-translation').forEach(el => el.remove());
+    document.querySelectorAll('.shanbay-notification').forEach(el => el.remove());
+    const existingPanel = document.getElementById('shanbay-translation-panel');
+    if (existingPanel) existingPanel.remove();
+    translationPanel = null;
+  }
+
   // 初始化
   function init() {
     console.log('扇贝阅读翻译助手已加载');
+
+    // 清理页面缓存中残留的翻译结果
+    cleanupPreviousTranslations();
 
     // 加载显示配置
     loadDisplayConfig();
@@ -85,6 +98,9 @@
 
     // 监听页面动态内容变化
     setupMutationObserver();
+
+    // 监听URL变化（SPA导航时清理翻译结果）
+    setupNavigationCleanup();
 
     // 监听配置更新消息
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -698,6 +714,39 @@
       notification.classList.add('shanbay-fade-out');
       setTimeout(() => notification.remove(), 300);
     }, 3000);
+  }
+
+  // 监听URL变化（SPA导航时清理翻译结果）
+  function setupNavigationCleanup() {
+    // 监听浏览器后退/前进（bfcache恢复）
+    window.addEventListener('pageshow', (event) => {
+      if (event.persisted) {
+        console.log('[翻译助手] 页面从缓存恢复，清理翻译结果');
+        cleanupPreviousTranslations();
+      }
+    });
+
+    // 监听popstate（浏览器后退/前进按钮）
+    window.addEventListener('popstate', () => {
+      console.log('[翻译助手] popstate事件，清理翻译结果');
+      cleanupPreviousTranslations();
+    });
+
+    // 拦截SPA导航（pushState/replaceState）
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function() {
+      originalPushState.apply(this, arguments);
+      console.log('[翻译助手] pushState，清理翻译结果');
+      cleanupPreviousTranslations();
+    };
+
+    history.replaceState = function() {
+      originalReplaceState.apply(this, arguments);
+      console.log('[翻译助手] replaceState，清理翻译结果');
+      cleanupPreviousTranslations();
+    };
   }
 
   // 初始化插件
