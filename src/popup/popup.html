@@ -507,6 +507,26 @@
         </label>
       </div>
 
+      <div class="form-group">
+        <label>语音朗读音色</label>
+        <div class="tips" style="margin-bottom: 0;">
+          <div class="tips-content">使用浏览器内置语音引擎，免费无需配置。音色取决于系统语音包。</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="browserTtsVoiceEn">英文音色</label>
+        <select id="browserTtsVoiceEn" style="width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: #f8fafc; color: #4a5568; outline: none;">
+          <option value="">加载中...</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="browserTtsVoiceZh">中文音色</label>
+        <select id="browserTtsVoiceZh" style="width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; background: #f8fafc; color: #4a5568; outline: none;">
+          <option value="">加载中...</option>
+        </select>
+      </div>
+
       <button class="btn btn-primary" id="saveDisplayConfig">保存设置</button>
     </div>
 
@@ -534,6 +554,16 @@
       </div>
 
       <div class="tips">
+        <div class="tips-title">语音朗读</div>
+        <div class="tips-content">
+          1. 翻译结果旁将显示🔊朗读按钮<br>
+          2. 支持朗读原文（英文）和译文（中文）<br>
+          3. 使用浏览器内置语音引擎，免费无需配置<br>
+          4. 在"显示设置"中可选择不同音色
+        </div>
+      </div>
+
+      <div class="tips">
         <div class="tips-title">DeepSeek接入</div>
         <div class="tips-content">
           1. 访问 <a href="https://platform.deepseek.com/" target="_blank">DeepSeek开放平台</a><br>
@@ -553,7 +583,7 @@
     </div>
 
     <div class="footer">
-      扇贝阅读翻译助手 v1.0.0
+      扇贝阅读翻译助手 v1.1.0
     </div>
   </div>
 

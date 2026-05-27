@@ -27,6 +27,32 @@
   // 翻译面板
   let translationPanel = null;
 
+  // 当前翻译引擎
+  let currentEngine = 'baidu';
+
+  // 浏览器TTS音色配置
+  let browserTtsVoiceEn = '';
+  let browserTtsVoiceZh = '';
+
+  // 当前播放的朗读
+  let currentUtterance = null;
+  let isStoppingTTS = false;
+
+  // 停止朗读
+  function stopTTS() {
+    isStoppingTTS = true;
+    if (currentUtterance) {
+      currentUtterance.onend = null;
+      currentUtterance.onerror = null;
+      currentUtterance = null;
+    }
+    window.speechSynthesis.cancel();
+    document.querySelectorAll('.shanbay-tts-playing').forEach(btn => {
+      btn.classList.remove('shanbay-tts-playing');
+      btn.textContent = '🔊';
+    });
+  }
+
   // 显示配置
   let displayConfig = {
     mode: 'sidebar',  // 'panel' 或 'sidebar'
@@ -94,12 +120,27 @@
         }
         sendResponse({ success: true });
       }
+      if (request.action === 'updateTtsConfig') {
+        if (request.browserTtsVoiceEn !== undefined) browserTtsVoiceEn = request.browserTtsVoiceEn;
+        if (request.browserTtsVoiceZh !== undefined) browserTtsVoiceZh = request.browserTtsVoiceZh;
+        console.log('[翻译助手] TTS音色已更新:', browserTtsVoiceEn, browserTtsVoiceZh);
+        sendResponse({ success: true });
+      }
     });
   }
 
   // 加载显示配置
   function loadDisplayConfig() {
-    chrome.storage.sync.get(['displayMode', 'sidebarSelector', 'showOriginal', 'hideTitle', 'hideButton'], (result) => {
+    chrome.storage.sync.get(['translationEngine', 'browserTtsVoiceEn', 'browserTtsVoiceZh', 'displayMode', 'sidebarSelector', 'showOriginal', 'hideTitle', 'hideButton'], (result) => {
+      if (result.translationEngine) {
+        currentEngine = result.translationEngine;
+      }
+      if (result.browserTtsVoiceEn) {
+        browserTtsVoiceEn = result.browserTtsVoiceEn;
+      }
+      if (result.browserTtsVoiceZh) {
+        browserTtsVoiceZh = result.browserTtsVoiceZh;
+      }
       if (result.displayMode) {
         displayConfig.mode = result.displayMode;
       }
@@ -153,6 +194,7 @@
 
     // 绑定关闭按钮
     document.getElementById('shanbay-panel-close').addEventListener('click', () => {
+      stopTTS();
       translationPanel.classList.remove('shanbay-panel-show');
     });
   }
@@ -332,6 +374,9 @@
 
   // 执行翻译（统一处理自定义按钮和官方按钮）
   async function executeTranslate(text, button, isOfficial) {
+    // 停止正在播放的朗读
+    stopTTS();
+
     // 立即显示原文
     showOriginalText(text);
 
@@ -425,11 +470,13 @@
     const panelContent = document.getElementById('shanbay-panel-content');
     if (!panelContent) return;
 
+    const ttsBtnHtml = `<button class="shanbay-tts-btn" data-text="${originalText.replace(/"/g, '&quot;')}" data-lang="en" title="朗读原文">🔊</button>`;
+
     let html = '';
     if (displayConfig.showOriginal) {
       html += `
         <div class="shanbay-panel-original">
-          <div class="shanbay-panel-label">原文</div>
+          <div class="shanbay-panel-label">原文 ${ttsBtnHtml}</div>
           <div class="shanbay-panel-text">${originalText}</div>
         </div>
       `;
@@ -442,6 +489,9 @@
     `;
 
     panelContent.innerHTML = html;
+    panelContent.querySelectorAll('.shanbay-tts-btn').forEach(btn => {
+      btn.addEventListener('click', () => playTTS(btn.dataset.text, btn.dataset.lang, btn));
+    });
     translationPanel.classList.add('shanbay-panel-show');
   }
 
@@ -454,6 +504,19 @@
     if (translationArea) {
       translationArea.textContent = translation;
       translationArea.classList.remove('shanbay-translating');
+    }
+
+    // 添加译文朗读按钮
+    const translationLabel = panelContent.querySelector('.shanbay-panel-translation .shanbay-panel-label');
+    if (translationLabel && !translationLabel.querySelector('.shanbay-tts-btn')) {
+      const ttsBtn = document.createElement('button');
+      ttsBtn.className = 'shanbay-tts-btn';
+      ttsBtn.textContent = '🔊';
+      ttsBtn.title = '朗读译文';
+      ttsBtn.dataset.text = translation;
+      ttsBtn.dataset.lang = 'zh';
+      ttsBtn.addEventListener('click', () => playTTS(ttsBtn.dataset.text, ttsBtn.dataset.lang, ttsBtn));
+      translationLabel.appendChild(ttsBtn);
     }
   }
 
@@ -483,9 +546,10 @@
 
     let contentHtml = '';
     if (displayConfig.showOriginal) {
+      const ttsBtnHtml = `<button class="shanbay-tts-btn" data-text="${originalText.replace(/"/g, '&quot;')}" data-lang="en" title="朗读原文">🔊</button>`;
       contentHtml += `
         <div class="shanbay-sidebar-original">
-          <div class="shanbay-sidebar-label">原文</div>
+          <div class="shanbay-sidebar-label">原文 ${ttsBtnHtml}</div>
           <div class="shanbay-sidebar-text">${originalText}</div>
         </div>
       `;
@@ -508,7 +572,12 @@
     `;
 
     resultContainer.querySelector('.shanbay-sidebar-close').addEventListener('click', () => {
+      stopTTS();
       resultContainer.remove();
+    });
+
+    resultContainer.querySelectorAll('.shanbay-tts-btn').forEach(btn => {
+      btn.addEventListener('click', () => playTTS(btn.dataset.text, btn.dataset.lang, btn));
     });
   }
 
@@ -525,6 +594,62 @@
       translationArea.textContent = translation;
       translationArea.classList.remove('shanbay-translating');
     }
+
+    // 添加译文朗读按钮
+    const translationLabel = resultContainer.querySelector('.shanbay-sidebar-translation-text .shanbay-sidebar-label');
+    if (translationLabel && !translationLabel.querySelector('.shanbay-tts-btn')) {
+      const ttsBtn = document.createElement('button');
+      ttsBtn.className = 'shanbay-tts-btn';
+      ttsBtn.textContent = '🔊';
+      ttsBtn.title = '朗读译文';
+      ttsBtn.dataset.text = translation;
+      ttsBtn.dataset.lang = 'zh';
+      ttsBtn.addEventListener('click', () => playTTS(ttsBtn.dataset.text, ttsBtn.dataset.lang, ttsBtn));
+      translationLabel.appendChild(ttsBtn);
+    }
+  }
+
+  // 朗读TTS
+  function playTTS(text, lang, btn) {
+    // 如果当前按钮正在播放，则停止
+    if (btn.classList.contains('shanbay-tts-playing')) {
+      stopTTS();
+      return;
+    }
+
+    stopTTS();
+    isStoppingTTS = false;
+
+    btn.classList.add('shanbay-tts-playing');
+    btn.textContent = '⏳';
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang === 'zh' ? 'zh-CN' : (lang === 'en' ? 'en-US' : lang);
+
+    // 选择指定音色
+    const savedVoice = lang === 'zh' ? browserTtsVoiceZh : browserTtsVoiceEn;
+    if (savedVoice) {
+      const voices = window.speechSynthesis.getVoices();
+      const matched = voices.find(v => v.voiceURI === savedVoice);
+      if (matched) utterance.voice = matched;
+    }
+
+    utterance.onend = () => {
+      btn.classList.remove('shanbay-tts-playing');
+      btn.textContent = '🔊';
+      currentUtterance = null;
+    };
+    utterance.onerror = () => {
+      btn.classList.remove('shanbay-tts-playing');
+      btn.textContent = '🔊';
+      if (!isStoppingTTS) {
+        showNotification('朗读失败', 'error');
+      }
+      isStoppingTTS = false;
+      currentUtterance = null;
+    };
+    currentUtterance = utterance;
+    window.speechSynthesis.speak(utterance);
   }
 
   // 保存原始标题

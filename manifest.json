@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "扇贝阅读翻译助手",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "为扇贝阅读网站添加段落翻译功能，支持百度翻译和DeepSeek",
   "permissions": [
     "activeTab",

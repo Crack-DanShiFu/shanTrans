@@ -277,6 +277,36 @@ p,
   line-height: 1.7;
 }
 
+/* ========== 朗读按钮样式 ========== */
+
+.shanbay-tts-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  font-size: 10px;
+  padding: 0;
+  margin-left: 6px;
+  vertical-align: middle;
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.shanbay-tts-btn:hover {
+  opacity: 1;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.shanbay-tts-btn.shanbay-tts-playing {
+  opacity: 1;
+  animation: shanbay-pulse 1s infinite;
+}
+
 /* ========== 通知样式 ========== */
 
 .shanbay-notification {

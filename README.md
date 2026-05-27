@@ -1,6 +1,6 @@
 # 扇贝阅读翻译助手 (ShanBay Translate Helper)
 
-一个强大的Chrome浏览器扩展，为扇贝阅读网站添加段落翻译功能，支持百度翻译和DeepSeek双引擎。
+一个强大的Chrome浏览器扩展，为扇贝阅读网站添加段落翻译和语音朗读功能，支持百度翻译和DeepSeek双引擎。
 
 ## 功能特点
 
@@ -9,6 +9,8 @@
 - **多引擎支持**：支持百度翻译API和DeepSeek AI大模型
 - **翻译结果缓存**：避免重复翻译，提升效率
 - **双显示模式**：支持侧边栏显示和右侧抽屉弹出
+- **语音朗读**：翻译结果支持语音朗读，可朗读原文和译文
+- **音色选择**：支持选择不同的浏览器语音音色
 - **右键翻译**：选中文本后右键即可翻译
 - **替换官方按钮**：自动替换扇贝阅读官方翻译按钮
 - **配置持久化**：配置信息自动保存，重启后无需重新设置
@@ -122,16 +124,22 @@ shanTrans/
   - 隐藏网页标题：隐藏浏览器标签页标题
   - 隐藏翻译按钮：隐藏段落上的"译"按钮（可通过右键翻译）
 
+- **语音朗读**：
+  - 使用浏览器内置语音引擎，免费无需配置
+  - 可选择英文和中文音色
+  - 翻译结果旁显示🔊按钮，点击即可朗读
+
 ## 配置说明
 
 ### API配置
 
-| 配置项 | 百度翻译 | DeepSeek |
-|--------|----------|----------|
-| API Key | 百度AI平台API Key | DeepSeek API Key |
-| Secret Key | 百度AI平台Secret Key | - |
-| API地址 | - | 默认: https://api.deepseek.com/chat/completions |
-| 模型 | - | deepseek-chat / deepseek-reasoner / 自定义 |
+| 配置项        | 百度翻译                                                 | DeepSeek                                                                      |
+|------------|------------------------------------------------------|-------------------------------------------------------------------------------|
+| API Key    | 百度AI平台API Key                                        | DeepSeek API Key                                                              |
+| Secret Key | 百度AI平台Secret Key                                     | -                                                                             |
+| API地址      | 默认: https://aip.baidubce.com/rpc/2.0/mt/texttrans/v1 | 默认: https://api.deepseek.com/chat/completions                                 |
+| 模型         | -                                                    | deepseek-chat / deepseek-reasoner / 自定义                                       |
+| 地址         | [百度通用翻译](https://ai.baidu.com/ai-doc/MT/4kqryjku9 )  | [deepseek对话](https://api-docs.deepseek.com/zh-cn/api/create-chat-completion)  |
 
 ### 显示配置
 
@@ -158,6 +166,7 @@ shanTrans/
 - `src/content/content.js` - 内容脚本，注入到网页中
   - 段落识别和翻译按钮创建
   - 翻译结果展示（侧边栏/面板）
+  - 语音朗读功能（Web Speech API）
   - MutationObserver监听DOM变化
 
 - `src/background/background.js` - 后台脚本，处理API调用
@@ -241,7 +250,16 @@ MIT License
 
 ## 更新日志
 
-### v1.0.0 (2024-01-25)
+### v1.1.0 (2026-05-27)
+
+- 新增语音朗读功能（浏览器内置Web Speech API）
+- 新增音色选择设置（英文/中文音色可选）
+- 优化翻译体验：点击翻译后立即显示原文，译文稍后填充
+- 翻译时自动停止正在播放的朗读
+- 关闭翻译面板时自动停止朗读
+- 修复朗读被打断时的错误提示问题
+
+### v1.0.0 (2026-05-26)
 
 - 初始版本发布
 - 支持百度翻译API

@@ -23,7 +23,9 @@
     saveDisplayConfig: document.getElementById('saveDisplayConfig'),
     showOriginal: document.getElementById('showOriginal'),
     hideTitle: document.getElementById('hideTitle'),
-    hideButton: document.getElementById('hideButton')
+    hideButton: document.getElementById('hideButton'),
+    browserTtsVoiceEn: document.getElementById('browserTtsVoiceEn'),
+    browserTtsVoiceZh: document.getElementById('browserTtsVoiceZh')
   };
 
   // 初始化
@@ -32,6 +34,7 @@
     loadDisplayConfig();
     bindEvents();
     setupTabs();
+    loadBrowserVoices();
   }
 
   // Tab切换
@@ -278,14 +281,20 @@
     const showOriginal = elements.showOriginal.checked;
     const hideTitle = elements.hideTitle.checked;
     const hideButton = elements.hideButton.checked;
+    const browserTtsVoiceEn = elements.browserTtsVoiceEn.value;
+    const browserTtsVoiceZh = elements.browserTtsVoiceZh.value;
 
-    chrome.storage.sync.set({
+    const saveData = {
       displayMode: mode,
       sidebarSelector: selector,
       showOriginal: showOriginal,
       hideTitle: hideTitle,
-      hideButton: hideButton
-    }, () => {
+      hideButton: hideButton,
+      browserTtsVoiceEn: browserTtsVoiceEn,
+      browserTtsVoiceZh: browserTtsVoiceZh
+    };
+
+    chrome.storage.sync.set(saveData, () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
           chrome.tabs.sendMessage(tabs[0].id, {
@@ -299,11 +308,63 @@
             hideTitle: hideTitle,
             hideButton: hideButton
           });
+          chrome.tabs.sendMessage(tabs[0].id, {
+            action: 'updateTtsConfig',
+            browserTtsVoiceEn: browserTtsVoiceEn,
+            browserTtsVoiceZh: browserTtsVoiceZh
+          });
         }
       });
 
-      showStatus('显示设置保存成功！', 'success');
+      showStatus('设置保存成功！', 'success');
     });
+  }
+
+  // 加载系统可用语音
+  function loadBrowserVoices() {
+    const synth = window.speechSynthesis;
+
+    function populateVoices() {
+      const voices = synth.getVoices();
+      if (voices.length === 0) return;
+
+      const enVoices = voices.filter(v => v.lang.startsWith('en'));
+      const zhVoices = voices.filter(v => v.lang.startsWith('zh'));
+
+      chrome.storage.sync.get(['browserTtsVoiceEn', 'browserTtsVoiceZh'], (result) => {
+        const savedEn = result.browserTtsVoiceEn || '';
+        const savedZh = result.browserTtsVoiceZh || '';
+
+        elements.browserTtsVoiceEn.innerHTML = '';
+        if (enVoices.length === 0) {
+          elements.browserTtsVoiceEn.innerHTML = '<option value="">无可用英文语音</option>';
+        } else {
+          enVoices.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.voiceURI;
+            opt.textContent = `${v.name} (${v.lang})`;
+            if (v.voiceURI === savedEn || (!savedEn && v.default)) opt.selected = true;
+            elements.browserTtsVoiceEn.appendChild(opt);
+          });
+        }
+
+        elements.browserTtsVoiceZh.innerHTML = '';
+        if (zhVoices.length === 0) {
+          elements.browserTtsVoiceZh.innerHTML = '<option value="">无可用中文语音</option>';
+        } else {
+          zhVoices.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.voiceURI;
+            opt.textContent = `${v.name} (${v.lang})`;
+            if (v.voiceURI === savedZh || (!savedZh && v.default)) opt.selected = true;
+            elements.browserTtsVoiceZh.appendChild(opt);
+          });
+        }
+      });
+    }
+
+    populateVoices();
+    synth.onvoiceschanged = populateVoices;
   }
 
   // 显示状态信息
