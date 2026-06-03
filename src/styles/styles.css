@@ -241,6 +241,8 @@ p,
 
 .shanbay-sidebar-content {
   padding: 16px;
+  overflow-y: auto;
+  max-height: calc(100vh - 260px);
 }
 
 /* 侧边栏 - 原文 */
